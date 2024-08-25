@@ -22,14 +22,8 @@ def get_you_tube_transcript(url):
     try:
         transcript = YouTubeTranscriptApi.get_transcript(video_id)
         return transcript
-    except YouTubeTranscriptApi.NoTranscriptAvailable:
-        return "Error: No transcript available for this video."
-    except YouTubeTranscriptApi.TranscriptsDisabled:
-        return "Error: Transcripts are disabled for this video."
-    except YouTubeTranscriptApi.NoTranscriptFound:
-        return "Error: No transcript found for this video."
     except Exception as e:
-        return f"Error: An unexpected error occurred: {str(e)}"
+        return f"Error: Could not retrieve transcript. Reason: {str(e)}"
 
 def register(registry: ToolRegistry):
     registry.register_tool(Tool(
