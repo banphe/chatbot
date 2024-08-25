@@ -27,6 +27,8 @@ def display_conversation(thread, show_full_message):
 
 def main():
     st.set_page_config(layout='wide')
+    anthropic_api_key = os.environ.get('ANTHROPIC_API_KEY')
+    openai_api_key = os.environ.get('OPENAI_API_KEY')
     
     if "recording" not in cache: cache.recording = ""
     if "thread" not in cache: cache.thread = Thread(id=str(uuid.uuid4()))
