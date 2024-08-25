@@ -5,3 +5,5 @@ streamlit==1.37.0
 streamlit_mic_recorder==0.0.8
 tools==0.1.9
 python-dotenv
+youtube-transcript-api
+yfinance

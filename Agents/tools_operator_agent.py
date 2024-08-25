@@ -5,6 +5,6 @@ class ToolsOperatorAgent(Agent):
         super().__init__(
             name="Tools Operator",
             instructions="You are a helpful assistant.",
-            temperature=0.2,
-            tools=["get_temperature", "get_stock_price", "list_project_files", "read_file"]
+            temperature=0.2, 
+            tools=["get_temperature", "get_stock_price", "get_wikipedia_summary", "list_project_files", "get_you_tube_transcript", "read_file"]
         )
