@@ -9,6 +9,7 @@ import os
 
 def whisper_stt(openai_api_key=None, start_prompt="Start recording", stop_prompt="Stop recording", just_once=True,
                use_container_width=False, language=None, callback=None, args=(), kwargs=None, key=None):
+    openai_api_key = os.environ.get('OPENAI_API_KEY')
     if not 'openai_client' in st.session_state:
         st.session_state.openai_client = OpenAI(api_key=openai_api_key or os.getenv('OPENAI_API_KEY'))
     if not '_last_speech_to_text_transcript_id' in st.session_state:

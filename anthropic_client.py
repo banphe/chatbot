@@ -1,10 +1,10 @@
 import anthropic
 from Tools import initialize_tools
-
+import os 
 class AnthropicClient:
     msgApi = anthropic.Client().messages
     sonnet = "claude-3-5-sonnet-20240620"
-
+    anthropic_api_key = os.environ.get('ANTHROPIC_API_KEY')
     def __init__(self):
         self.tool_registry = initialize_tools()
 

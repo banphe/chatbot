@@ -1,12 +1,13 @@
-import PIL.Image
+import uuid, os 
 import streamlit as st
 from streamlit import session_state as cache
-import os, io, base64, uuid
 from thread import Thread
 from anthropic_client import AnthropicClient
 from Agents import *
 from whisper_stt import whisper_stt
 from PromptTemplates import template_registry
+import image_processor 
+
 
 def display_conversation(thread, show_full_message):
     for m in thread.get_conversation():
@@ -19,16 +20,15 @@ def display_conversation(thread, show_full_message):
                         displayed_text = content['text']
                     st.write(displayed_text)
                 elif content['type'] == 'image':
-                    image_data = base64.b64decode(content['source']['data'])
-                    image = PIL.Image.open(io.BytesIO(image_data))
-                    st.image(image, caption="Uploaded Image")
+                    image = image_processor.base64_to_image(content['source']['data'])
+                    st.image(image, caption="Uploaded Image", use_column_width=True)
                 else:
                     st.code(content)
 
 def main():
     st.set_page_config(layout='wide')
-    anthropic_api_key = os.environ.get('ANTHROPIC_API_KEY')
-    openai_api_key = os.environ.get('OPENAI_API_KEY')
+    #anthropic_api_key = os.environ.get('ANTHROPIC_API_KEY')
+    #openai_api_key = os.environ.get('OPENAI_API_KEY')
     
     if "recording" not in cache: cache.recording = ""
     if "thread" not in cache: cache.thread = Thread(id=str(uuid.uuid4()))
@@ -42,17 +42,17 @@ def main():
         st.header("Upload Images")
         uploaded_files = st.file_uploader("Choose images", accept_multiple_files=True, type=['png', 'jpg', 'jpeg', 'gif', 'webp'])
         if uploaded_files:
-            cache.uploaded_files = uploaded_files
-            st.success(f"{len(uploaded_files)} image(s) uploaded successfully!")
+            cache.uploaded_files = image_processor.process_multiple_images(uploaded_files)
+            st.success(f"{len(cache.uploaded_files)} image(s) uploaded and processed successfully!")
         
-        st.header("Select Agent")
+        
         cache.selected_agent = st.radio(
             "Choose an agent:",
             options=[BusinessPlanAgent(), ToolsOperatorAgent(), TranslatorAgent()],
             format_func=lambda x: x.get_name()
         )
 
-        st.header("Select Template")
+       
         available_templates = template_registry.list_templates()
         cache.selected_template = st.selectbox(
             "Choose a template to apply:",
@@ -63,7 +63,7 @@ def main():
         cache.show_full_message = st.checkbox("Show full message (including template)", value=False)
 
         lang = st.radio(label="Input Language", options=['en','pl','th'])
-        text = whisper_stt(openai_api_key="your_openai_api_key", language=lang)
+        text = whisper_stt(language=lang)
         if text: cache.recording = text
 
     user_message = st.chat_input("Your message")
@@ -76,22 +76,11 @@ def main():
         if cache.selected_template:
             user_message = template_registry.apply_template(user_message, cache.selected_template)
 
-        image_paths = []
-        if cache.uploaded_files:
-            for uploaded_file in cache.uploaded_files:
-                with open(uploaded_file.name, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-                image_paths.append(uploaded_file.name)
-        
+       
         # Initialize AnthropicClient directly and call ProcessMessage
         anthropic_client = AnthropicClient()
-        cache.thread = anthropic_client.ProcessMessage(cache.thread, user_message, cache.selected_agent, image_paths)
-        
-        # Clean up temporary files
-        for path in image_paths:
-            if os.path.exists(path):
-                os.remove(path)
-        
+        cache.thread = anthropic_client.ProcessMessage(cache.thread, user_message, cache.selected_agent, cache.uploaded_files)
+
         # Clear uploaded files after processing
         cache.uploaded_files = []
 
