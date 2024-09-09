@@ -7,3 +7,4 @@ tools==0.1.9
 python-dotenv
 youtube-transcript-api==0.6.2
 yfinance
+streamlit-extras==0.4.7

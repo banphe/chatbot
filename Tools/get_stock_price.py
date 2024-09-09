@@ -2,12 +2,12 @@ from .tool import Tool
 from .tool_registry import ToolRegistry
 import yfinance as yf
 
-def get_stock_price(symbol: str) -> float:
+def get_stock_price(symbol: str) -> str:
     # Fetches the latest closing stock price for a given ticker symbol using Yahoo Finance API.
     try:
         stock = yf.Ticker(symbol)
         price = stock.history(period="1d")['Close'].iloc[-1]
-        return price
+        return str(price)
     except Exception as e:
         # Provides detailed error reporting on what went wrong during the API call.
         print(f"An error occurred: {e}")

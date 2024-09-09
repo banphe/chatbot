@@ -29,3 +29,11 @@ def process_multiple_images(files: List[UploadedFile]) -> List[ImageData]:
 def base64_to_image(base64_string):
     image_data = base64.b64decode(base64_string)
     return Image.open(BytesIO(image_data))
+
+def process_image_from_path(file_path: str) -> ImageData:
+    with open(file_path, "rb") as image_file:
+        image_data = image_file.read()
+        image_base64 = base64.b64encode(image_data).decode("utf-8")
+        file_extension = os.path.splitext(file_path)[1]
+        image_media_type = get_media_type(file_extension)
+    return ImageData(image_base64, image_media_type)

@@ -15,7 +15,8 @@ def list_project_files():
                 files_and_folders.append(os.path.join(relative_root, file))
         return files_and_folders
 
-    return walk_directory('.')
+    files = walk_directory('.')
+    return "\n".join(files) 
 
 def register(registry: ToolRegistry):
     registry.register_tool(Tool(
