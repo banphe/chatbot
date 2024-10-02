@@ -7,23 +7,114 @@ from Agents import *
 from whisper_stt import whisper_stt
 from PromptTemplates import template_registry
 import image_processor 
+from streamlit_extras.stylable_container import stylable_container
+from itertools import groupby
+from operator import attrgetter
+import base64
+from io import BytesIO
+from PIL import Image
 
+# Define colors
+border_color = "#4a4a4a"  # Light variation of gray
+assistant_bg_color = "#1e1e2d"  # Lighter variation of main area background
+user_bg_color = "transparent"
 
+user_css = f"""{{
+    border: 1px solid {border_color};
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: {user_bg_color};
+}}"""
+
+assistant_css = f"""{{
+    border: 1px solid {border_color};
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: {assistant_bg_color};
+}}"""
+
+    
+def display_conversation_backup(thread, show_full_message):
+    # Divide conversation into two lists
+    non_system_messages = []
+    system_messages = []
+    for m in thread.get_full_conversation():
+        if m.sender == "system":
+            system_messages.append(m)
+        else:
+            non_system_messages.append(m)
+
+    # Iterate only over non-system messages
+    for m in non_system_messages:
+
+        css = user_css if m.role == 'user' else assistant_css
+        with stylable_container(key= f"message_{m.role}_{m.get_run_id()}", css_styles=css):
+            st.subheader(m.sender)
+            for content in m.content:
+                    if content['type'] == 'text':
+                        if cache.selected_agent.get_name() == "Translator" and not show_full_message:
+                            displayed_text = template_registry.extract_content(content['text'], "translator")
+                        else:
+                            displayed_text = content['text']
+                        with st.container():
+                            st.write(displayed_text)
+                    elif content['type'] == 'image':
+                        image = image_processor.base64_to_image(content['source']['data'])
+                        with st.container():
+                            st.image(image, caption="Uploaded Image", use_column_width=True)
+                    elif content['type'] in ['tool_use', 'tool_result']:
+                        with st.container():
+                            st.code(content)
+
+# New display_conversation function
 def display_conversation(thread, show_full_message):
-    for m in thread.get_conversation():
-        with st.chat_message(name=m['role']):
-            for content in m['content']:
+    messages = thread.get_full_conversation()
+    calls = [list(group) for _, group in groupby(messages, key=attrgetter('run_id'))]
+
+    for call in calls:
+        # Container for the first message (user input) and tool use
+        with stylable_container(key=f"user_input_{call[0].get_run_id()}", css_styles=user_css):
+            first_message = call[0]
+            st.write(first_message.sender.capitalize())  # Show sender field
+            for content in first_message.content:
                 if content['type'] == 'text':
-                    if cache.selected_agent.get_name() == "Translator" and not show_full_message:
-                        displayed_text = template_registry.extract_content(content['text'], "translator")
+                    with st.container():
+                        st.write(content['text'])
+                    break  # Only display the first text content
+
+            # Display tool use in the first container
+            tool_uses = [content for msg in call for content in msg.content if content['type'] == 'tool_use']
+            for tool_use in tool_uses:
+                with st.expander(f"Tool Use: {tool_use['name']}"):
+                    st.json(tool_use['input'])
+
+        # Container for the last message (usually assistant message) and tool results
+        with stylable_container(key=f"assistant_{call[-1].get_run_id()}", css_styles=assistant_css):
+            st.write(call[-1].sender.capitalize())  # Show sender field
+            last_message = call[-1]
+            for content in reversed(last_message.content):
+                if content['type'] == 'text':
+                    with st.container():
+                        st.write(content['text'])
+                    break  # Only display the last text content
+
+            # Display tool results in the assistant container
+            tool_results = [content for msg in call for content in msg.content if content['type'] == 'tool_result']
+            for result in tool_results:
+                error_status = "Error" if result['is_error'] else "Success"
+                with st.expander(f"Tool Result ({error_status})"):
+                    if isinstance(result['content'], list) and len(result['content']) > 0:
+                        for item in result['content']:
+                            if isinstance(item, dict) and item.get('type') == 'image':
+                                image_data = base64.b64decode(item['source']['data'])
+                                image = Image.open(BytesIO(image_data))
+                                st.image(image, caption="Generated Image", use_column_width=True)
                     else:
-                        displayed_text = content['text']
-                    st.write(displayed_text)
-                elif content['type'] == 'image':
-                    image = image_processor.base64_to_image(content['source']['data'])
-                    st.image(image, caption="Uploaded Image", use_column_width=True)
-                else:
-                    st.code(content)
+                        st.write(result['content'])
+
+    return calls
 
 def main():
     st.set_page_config(layout='wide')

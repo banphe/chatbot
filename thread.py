@@ -6,22 +6,22 @@ class Thread:
     def __init__(self, id):
         self.id = id
         self.conversation = []
-    def add_user_message(self, text: str, images: List[ImageData] = [], sender="user", recipient="assistant"):
+    def add_user_message(self, text: str, images: List[ImageData] = [], sender="user", recipient="assistant", run_id=None):
      
         content = [text_content(text)]
         for image in images:
             content.append(image_content(image.media_type,image.base64_data))
         
-        message = ExtendedMessage("user", content, sender, recipient)
+        message = ExtendedMessage("user", content, sender, recipient, run_id)
         self.conversation.append(message)
         return message.to_api_format()
 
-    def add_assistant_message(self, content, sender="assistant", recipient="user"):
-        message = ExtendedMessage("assistant", content, sender, recipient)
+    def add_assistant_message(self, content, sender="assistant", recipient="user", run_id=None):
+        message = ExtendedMessage("assistant", content, sender, recipient, run_id)
         self.conversation.append(message)
 
-    def add_tool_request_message(self, content, sender="system", recipient="assistant"):
-        message = ExtendedMessage("user", content, sender, recipient)
+    def add_tool_request_message(self, content, sender="system", recipient="assistant", run_id=None):
+        message = ExtendedMessage("user", content, sender, recipient, run_id)
         self.conversation.append(message)
 
     def get_conversation(self):
